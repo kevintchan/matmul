@@ -101,8 +101,8 @@ int main(int argc, char *argv[])
 
   int test_block_sizes[] = {8, 16, 32, 64, 128, 256};
 
-  for (int i = 0; i < 6; i++) {
-    int block_size = test_block_sizes[i];
+  for (int i = 0; i < 1; i++) {
+    int block_size = 32;//test_block_sizes[i];
     printf("block size: %d\n", block_size);
 
     double sum = 0;
@@ -112,14 +112,14 @@ int main(int argc, char *argv[])
       /* serial */
       serial_time = timestamp();
       matmuld(a,b,c, block_size);
+      serial_time = (timestamp() - serial_time);
+      mflops = report_mflops(serial_time);
+      printf("serial mflop/s = %f\n", mflops);
+      sum += mflops;
+
       if(compare(c,s)==false) {
 	printf("wrong serial answer!\n");
 	break;
-      } else {
-	serial_time = (timestamp() - serial_time);
-	mflops = report_mflops(serial_time);
-	printf("serial mflop/s = %f\n", mflops);
-	sum += mflops;
       }
     }
     printf("average serial mflops/s = %f\n", sum / num_trials);
