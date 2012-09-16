@@ -18,14 +18,24 @@ void matmuld(double **a, double **b, double **c, int block_size) {
               c[i][j] += a[i][k]*b[k][j];
             }
             */
-            c[i][jj] += a[i][k]*b[k][jj];
-            c[i][jj+1] += a[i][k]*b[k][jj+1];
-            c[i][jj+2] += a[i][k]*b[k][jj+2];
-            c[i][jj+3] += a[i][k]*b[k][jj+3];
-            c[i][jj+4] += a[i][k]*b[k][jj+4];
-            c[i][jj+5] += a[i][k]*b[k][jj+5];
-            c[i][jj+6] += a[i][k]*b[k][jj+6];
-            c[i][jj+7] += a[i][k]*b[k][jj+8];
+            int x = a[i][k];
+            int *r = &c[i][jj];
+            int *y = &b[k][jj];
+            *r += x * (*y);
+            y++;
+            *r += x * (*y);
+            yy++;
+            *r += x * (*y);
+            yy++;
+            *r += x * (*y);
+            yy++;
+            *r += x * (*y);
+            yy++;
+            *r += x * (*y);
+            yy++;
+            *r += x * (*y);
+            yy++;
+            *r += x * (*y);
           }
         }
       }
