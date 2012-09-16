@@ -96,13 +96,13 @@ int main(int argc, char *argv[])
   baseline_time = (timestamp() - baseline_time);
   printf("baseline mflop/s = %f\n", report_mflops(baseline_time));
 
-  int num_trials = 5;
+  int num_trials = 1;
   double mflops;
 
   int test_block_sizes[] = {8, 16, 32, 64, 128, 256};
 
-  for (int i = 0; i < 1; i++) {
-    int block_size = 32; //test_block_sizes[i];
+  for (int i = 0; i < 6; i++) {
+    int block_size = test_block_sizes[i];
     printf("block size: %d\n", block_size);
 
     double sum = 0;
