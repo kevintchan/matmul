@@ -19,7 +19,8 @@ void print_csv(double *r, int n, std::string fname);
 /* serial matrix multiply */
 void matmuld(double **a,
 	     double **b,
-	     double **c);
+	     double **c,
+	     int block_size);
 
 /* omp task matrix multiply */
 void omp_task_matmuld(double **a,
@@ -78,13 +79,13 @@ int main(int argc, char *argv[])
   double omp_for_time = 0.0;
   double pthread_time = 0.0;
 
-
   rand_matrix(a);
   rand_matrix(b);
-  zero_matrix(c);
+  //zero_matrix(c);
   zero_matrix(s);
 
-  baseline_time = timestamp();
+  // solution matrix
+  double baseline_time = timestamp();
   for(int i=0;i<1024;i++) {
     for(int j=0;j<1024;j++) {
       for(int k=0;k<1024;k++) {
@@ -92,21 +93,38 @@ int main(int argc, char *argv[])
       }
     }
   }
+  baseline_time = (timestamp() - baseline_time);
+  printf("baseline mflop/s = %f\n", report_mflops(baseline_time));
 
+  int num_trials = 5;
+  double mflops;
 
+  int test_block_sizes[] = {8, 16, 32, 64, 128, 256};
 
-  /* serial */
-  serial_time = timestamp();
-  matmuld(a,b,c);
-  if(compare(c,s)==false) {
-    printf("wrong serial answer!\n");
-  } else {
-    serial_time = (timestamp() - serial_time);
-    printf("serial mflop/s = %f\n", report_mflops(serial_time));
+  for (int i = 0; i < 1; i++) {
+    int block_size = 32; //test_block_sizes[i];
+    printf("block size: %d\n", block_size);
+
+    double sum = 0;
+    for (int i = 0; i < num_trials; i++) {
+      zero_matrix(c);
+
+      /* serial */
+      serial_time = timestamp();
+      matmuld(a,b,c, block_size);
+      if(compare(c,s)==false) {
+	printf("wrong serial answer!\n");
+	break;
+      } else {
+	serial_time = (timestamp() - serial_time);
+	mflops = report_mflops(serial_time);
+	printf("serial mflop/s = %f\n", mflops);
+	sum += mflops;
+      }
+    }
+    printf("average serial mflops/s = %f\n", sum / num_trials);
   }
-  
-  
-  /* omp for */
+  /* omp for **
   printf("Running OpenMP for:\n");
   for(int i = 1; i <= nprocs; i++)
     {
@@ -127,7 +145,7 @@ int main(int argc, char *argv[])
 	     i, report_mflops(omp_for_time));
     }
 
-  /* omp task */
+  /* omp task **
   printf("Running OpenMP task:\n");
   for(int i = 1; i <= nprocs; i++)
     {
@@ -148,7 +166,7 @@ int main(int argc, char *argv[])
     }
 
 
-  /* pthreads */
+  /* pthreads **
   printf("Running pThreads:\n");
   for(int i = 1; i <= nprocs; i++)
     {
@@ -167,6 +185,7 @@ int main(int argc, char *argv[])
       printf("%d, %f\n", 
 	     i, report_mflops(pthread_time));
     }
+  */
 
   for(int i = 0; i < 1024; i++)
     {
@@ -234,6 +253,7 @@ bool compare(double **a, double **b)
 	  d *= d;
 	  if(d > 0.00001)
 	    {
+	      printf("discrepancy: %d,%d %f vs. %f\n",i,j,a[i][j],b[i][j]);
 	      return false;
 	    }
 	}

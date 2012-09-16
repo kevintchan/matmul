@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <cassert>
+#include <stdio.h>
 
 typedef struct
 {
@@ -16,23 +17,29 @@ void *matmuld_worker(void *arg)
   double **a = t->a;
   double **b = t->b;
   double **c = t->c;
-  for(int i = t->start; i < t->end; i++)
-    {
-      for(int j = 0; j < 1024; j++)
-	{
-	  for(int k = 0; k < 1024; k++)
-	    {
-	      c[i][j] += a[i][k]*b[k][j];
-	    }
+
+  // Assumes that the cache can hold K*n + n + K words
+  int block_size = 64; //(K)
+  int matrix_dimension = 1024; //(n)
+  int blocks = matrix_dimension / block_size;
+
+  for(int i = t->start; i < t->end; i++) {
+    for(int jj=0; jj<matrix_dimension; jj+=block_size) {
+      for(int kk=0; kk<matrix_dimension ;kk+=block_size) {
+	for (int j=jj; j<jj+block_size; j++) {
+	  for (int k=kk; k<kk+block_size; k++) {
+	    c[i][j] += a[i][k]*b[k][j];
+	  }
 	}
+      }
     }
+  }
 }
 
 void pthread_matmuld(double **a,
 		     double **b,
 		     double **c,
-		     int nthr)
-{
+		     int nthr) {
   /* CS194: use pthreads to launch 
    * matrix multply worker threads.
    *
@@ -41,13 +48,39 @@ void pthread_matmuld(double **a,
    */
   pthread_t *thr = new pthread_t[nthr];
   worker_t *tInfo = new worker_t[nthr];
+  int i;
+  int max = 1024;
+  int interval = max / nthr;
+  for (i = 0; i < nthr; i++)
+  {
+    tInfo[i].a = a;
+    tInfo[i].b = b;
+    tInfo[i].c = c;
 
-  tInfo[0].a = a;
-  tInfo[0].b = b;
-  tInfo[0].c = c;
-  tInfo[0].start = 0;
-  tInfo[0].end = 1024;
-  matmuld_worker((void*)tInfo);
+    // set start/end boundaries
+    // start begins at 0
+    // end ends at MAX (not MAX - 1)
+    int start = interval *i;
+    tInfo[i].start = start;
+
+    int end = interval * (i + 1);
+    if (end + interval > max) {
+      end = max;
+    }
+    tInfo[i].end = end;
+    //printf("start: %d:: end %d\n", start, end);
+
+    //matmuld_worker((void*)tInfo);
+
+    pthread_create(&thr[i], 0, matmuld_worker, (void*) &tInfo[i]);
+
+    
+  }
+
+  for (i = 0; i < nthr; i++) {
+    pthread_join(thr[i], NULL);
+  }
+      
   
   delete [] thr;
   delete [] tInfo;
